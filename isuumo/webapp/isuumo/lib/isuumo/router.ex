@@ -34,7 +34,7 @@ defmodule Isuumo.Router do
     SQL.query!(Isuumo.Repo, sql, [])
   end
 
-  def range_by_id("", _), do: nil
+  def range_by_id("", _), do: {}
 
   def range_by_id(key, type) do
     @chair_search_condition
@@ -90,23 +90,40 @@ defmodule Isuumo.Router do
     color = Map.get(params, "color")
     kind = Map.get(params, "kind")
     features = Map.get(params, "features") |> String.split(",")
-    page = Map.get(params, "page") |> String.to_integer()
-    per_page = Map.get(params, "perPage") |> String.to_integer()
 
-    res =
-      Isuumo.Repo.search_chair(
-        price_range,
-        height_range,
-        width_range,
-        dept_range,
-        kind,
-        color,
-        features,
-        page,
-        per_page
-      )
+    page =
+      try do
+        Map.get(params, "page") |> String.to_integer()
+      rescue
+        _ -> nil
+      end
 
-    success(conn, res)
+    per_page =
+      try do
+        Map.get(params, "perPage") |> String.to_integer()
+      rescue
+        _ -> nil
+      end
+
+    if price_range == nil or height_range == nil or width_range == nil or dept_range == nil or
+         page == nil or per_page == nil do
+      error(conn)
+    else
+      res =
+        Isuumo.Repo.search_chair(
+          price_range,
+          height_range,
+          width_range,
+          dept_range,
+          kind,
+          color,
+          features,
+          page,
+          per_page
+        )
+
+      success(conn, res)
+    end
   end
 
   get "/api/chair/:id" do

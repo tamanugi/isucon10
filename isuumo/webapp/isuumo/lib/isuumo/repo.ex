@@ -33,7 +33,7 @@ defmodule Isuumo.Repo do
 
     query =
       case(price_range) do
-        nil ->
+        {} ->
           query
 
         {-1, max} ->
@@ -55,7 +55,7 @@ defmodule Isuumo.Repo do
 
     query =
       case(height_range) do
-        nil ->
+        {} ->
           query
 
         {-1, max} ->
@@ -77,7 +77,7 @@ defmodule Isuumo.Repo do
 
     query =
       case(width_range) do
-        nil ->
+        {} ->
           query
 
         {-1, max} ->
@@ -99,7 +99,7 @@ defmodule Isuumo.Repo do
 
     query =
       case(dept_range) do
-        nil ->
+        {} ->
           query
 
         {-1, max} ->
