@@ -150,11 +150,11 @@ defmodule Isuumo.Router do
     success(conn, @chair_search_condition)
   end
 
-  # get '/api/estate/low_priced' do
-  #   sql = "SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT #{LIMIT}" # XXX:
-  #   estates = db.xquery(sql).to_a
-  #   { estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
-  # end
+  get "/api/estate/low_priced" do
+    sql = "SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT #{@limit}"
+    estates = query(sql)
+    success(conn, %{estates: estates})
+  end
 
   # get '/api/estate/search' do
   #   search_queries = []
