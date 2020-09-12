@@ -6,8 +6,19 @@ defmodule Isuumo.Router do
 
   alias Ecto.Adapters.SQL
 
+  @limit 20
+  # NAZOTTE_LIMIT = 50
+  # CHAIR_SEARCH_CONDITION = JSON.parse(File.read('../fixture/chair_condition.json'), symbolize_names: true)
+  # ESTATE_SEARCH_CONDITION = JSON.parse(File.read('../fixture/estate_condition.json'), symbolize_names: true)
+
   defp success(conn, resp) do
-    send_resp(conn, 200, resp |> Poison.encode!())
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, resp |> Poison.encode!())
+  end
+
+  def query(sql) do
+    SQL.query!(Isuumo.Repo, sql, [])
   end
 
   post "/initialize" do
@@ -24,11 +35,12 @@ defmodule Isuumo.Router do
     success(conn, %{language: "elixir"})
   end
 
-  # get '/api/chair/low_priced' do
-  #   sql = "SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT #{LIMIT}" # XXX:
-  #   chairs = db.query(sql).to_a
-  #   { chairs: chairs }.to_json
-  # end
+  get "/api/chair/low_priced" do
+    # XXX:
+    sql = "SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT #{@limit}"
+    chairs = query(sql)
+    success(conn, %{chairs: chairs})
+  end
 
   # get '/api/chair/search' do
   #   search_queries = []
