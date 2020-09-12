@@ -5,10 +5,13 @@ defmodule Isuumo.Router do
   plug(:dispatch)
 
   alias Ecto.Adapters.SQL
+  alias Plug.Conn
 
   @limit 20
+  @chair_search_condition Poison.decode!(File.read!('fixture/chair_condition.json'))
+  @estate_search_condition Poison.decode!(File.read!('fixture/estate_condition.json'))
+
   # NAZOTTE_LIMIT = 50
-  # CHAIR_SEARCH_CONDITION = JSON.parse(File.read('../fixture/chair_condition.json'), symbolize_names: true)
   # ESTATE_SEARCH_CONDITION = JSON.parse(File.read('../fixture/estate_condition.json'), symbolize_names: true)
 
   defp success(conn, resp) do
@@ -17,8 +20,25 @@ defmodule Isuumo.Router do
     |> send_resp(200, resp |> Poison.encode!())
   end
 
+  def error(conn) do
+    send_resp(conn, 400, "")
+  end
+
   def query(sql) do
     SQL.query!(Isuumo.Repo, sql, [])
+  end
+
+  def range_by_id("", _), do: nil
+
+  def range_by_id(key, type) do
+    @chair_search_condition
+    |> Map.get(type)
+    |> Map.get("ranges")
+    |> Enum.filter(fn %{"id" => id, "min" => _, "max" => _} ->
+      id == String.to_integer(key)
+    end)
+    |> Enum.map(fn %{"id" => _, "min" => min, "max" => max} -> {min, max} end)
+    |> List.first()
   end
 
   post "/initialize" do
@@ -42,132 +62,37 @@ defmodule Isuumo.Router do
     success(conn, %{chairs: chairs})
   end
 
-  # get '/api/chair/search' do
-  #   search_queries = []
-  #   query_params = []
+  get "/api/chair/search" do
+    conn = Conn.fetch_query_params(conn)
+    params = conn.query_params
 
-  #   if params[:priceRangeId] && params[:priceRangeId].size > 0
-  #     chair_price = CHAIR_SEARCH_CONDITION[:price][:ranges][params[:priceRangeId].to_i]
-  #     unless chair_price
-  #       logger.error "priceRangeID invalid: #{params[:priceRangeId]}"
-  #       halt 400
-  #     end
+    IO.inspect(params)
 
-  #     if chair_price[:min] != -1
-  #       search_queries << 'price >= ?'
-  #       query_params << chair_price[:min]
-  #     end
+    price_range = range_by_id(Map.get(params, "priceRangeId"), "price")
+    height_range = range_by_id(Map.get(params, "heightRangeId"), "height")
+    width_range = range_by_id(Map.get(params, "widthRangeId"), "width")
+    dept_range = range_by_id(Map.get(params, "depthRangeId"), "depth")
+    color = Map.get(params, "color")
+    kind = Map.get(params, "kind")
+    features = Map.get(params, "features") |> String.split(",")
+    page = Map.get(params, "page") |> String.to_integer()
+    per_page = Map.get(params, "perPage") |> String.to_integer()
 
-  #     if chair_price[:max] != -1
-  #       search_queries << 'price < ?'
-  #       query_params << chair_price[:max]
-  #     end
-  #   end
+    res =
+      Isuumo.Repo.search_chair(
+        price_range,
+        height_range,
+        width_range,
+        dept_range,
+        kind,
+        color,
+        features,
+        page,
+        per_page
+      )
 
-  #   if params[:heightRangeId] && params[:heightRangeId].size > 0
-  #     chair_height = CHAIR_SEARCH_CONDITION[:height][:ranges][params[:heightRangeId].to_i]
-  #     unless chair_height
-  #       logger.error "heightRangeId invalid: #{params[:heightRangeId]}"
-  #       halt 400
-  #     end
-
-  #     if chair_height[:min] != -1
-  #       search_queries << 'height >= ?'
-  #       query_params << chair_height[:min]
-  #     end
-
-  #     if chair_height[:max] != -1
-  #       search_queries << 'height < ?'
-  #       query_params << chair_height[:max]
-  #     end
-  #   end
-
-  #   if params[:widthRangeId] && params[:widthRangeId].size > 0
-  #     chair_width = CHAIR_SEARCH_CONDITION[:width][:ranges][params[:widthRangeId].to_i]
-  #     unless chair_width
-  #       logger.error "widthRangeId invalid: #{params[:widthRangeId]}"
-  #       halt 400
-  #     end
-
-  #     if chair_width[:min] != -1
-  #       search_queries << 'width >= ?'
-  #       query_params << chair_width[:min]
-  #     end
-
-  #     if chair_width[:max] != -1
-  #       search_queries << 'width < ?'
-  #       query_params << chair_width[:max]
-  #     end
-  #   end
-
-  #   if params[:depthRangeId] && params[:depthRangeId].size > 0
-  #     chair_depth = CHAIR_SEARCH_CONDITION[:depth][:ranges][params[:depthRangeId].to_i]
-  #     unless chair_depth
-  #       logger.error "depthRangeId invalid: #{params[:depthRangeId]}"
-  #       halt 400
-  #     end
-
-  #     if chair_depth[:min] != -1
-  #       search_queries << 'depth >= ?'
-  #       query_params << chair_depth[:min]
-  #     end
-
-  #     if chair_depth[:max] != -1
-  #       search_queries << 'depth < ?'
-  #       query_params << chair_depth[:max]
-  #     end
-  #   end
-
-  #   if params[:kind] && params[:kind].size > 0
-  #     search_queries << 'kind = ?'
-  #     query_params << params[:kind]
-  #   end
-
-  #   if params[:color] && params[:color].size > 0
-  #     search_queries << 'color = ?'
-  #     query_params << params[:color]
-  #   end
-
-  #   if params[:features] && params[:features].size > 0
-  #     params[:features].split(',').each do |feature_condition|
-  #       search_queries << "features LIKE CONCAT('%', ?, '%')"
-  #       query_params.push(feature_condition)
-  #     end
-  #   end
-
-  #   if search_queries.size == 0
-  #     logger.error "Search condition not found"
-  #     halt 400
-  #   end
-
-  #   search_queries.push('stock > 0')
-
-  #   page =
-  #     begin
-  #       Integer(params[:page], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Invalid format page parameter: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   per_page =
-  #     begin
-  #       Integer(params[:perPage], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Invalid format perPage parameter: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   sqlprefix = 'SELECT * FROM chair WHERE '
-  #   search_condition = search_queries.join(' AND ')
-  #   limit_offset = " ORDER BY popularity DESC, id ASC LIMIT #{per_page} OFFSET #{per_page * page}" # XXX: mysql-cs-bind doesn't support escaping variables for limit and offset
-  #   count_prefix = 'SELECT COUNT(*) as count FROM chair WHERE '
-
-  #   count = db.xquery("#{count_prefix}#{search_condition}", query_params).first[:count]
-  #   chairs = db.xquery("#{sqlprefix}#{search_condition}#{limit_offset}", query_params).to_a
-
-  #   { count: count, chairs: chairs }.to_json
-  # end
+    success(conn, res)
+  end
 
   # get '/api/chair/:id' do
   #   id =
