@@ -288,9 +288,9 @@ defmodule Isuumo.Router do
   #   status 200
   # end
 
-  # get '/api/estate/search/condition' do
-  #   ESTATE_SEARCH_CONDITION.to_json
-  # end
+  get "/api/estate/search/condition" do
+    success(conn, @estate_search_condition)
+  end
 
   # get '/api/recommended_estate/:id' do
   #   id =
