@@ -204,7 +204,7 @@ defmodule Isuumo.Router do
     page = Map.get(params, "page") |> String.to_integer()
     per_page = Map.get(params, "perPage") |> String.to_integer()
 
-    %{count: count, chairs: chairs} =
+    %{count: count, estates: estates} =
       Isuumo.Repo.search_estate(
         door_height_range,
         door_width_range,
@@ -214,7 +214,7 @@ defmodule Isuumo.Router do
         per_page
       )
 
-    success(conn, %{count: count, chairs: chairs |> camelize_keys_for_estate()})
+    success(conn, %{count: count, estates: estates |> camelize_keys_for_estate()})
   end
 
   post "/api/estate/nazotte" do
