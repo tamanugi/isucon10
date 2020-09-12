@@ -60,6 +60,20 @@ defmodule Isuumo.Router do
     |> List.first()
   end
 
+  def camelize_keys_for_estate(estates) when is_list(estates) do
+    estates
+    |> Enum.map(fn e -> camelize_keys_for_estate(e) end)
+  end
+
+  def camelize_keys_for_estate(%Isuumo.Estate{} = estate) do
+    {dh, estate} = Map.pop(estate, :door_height)
+    {dw, estate} = Map.pop(estate, :door_width)
+
+    estate
+    |> Map.put_new(:doorHeight, dh)
+    |> Map.put_new(:doorWidth, dw)
+  end
+
   post "/initialize" do
     ~w(0_Schema.sql 1_DummyEstateData.sql 2_DummyChairData.sql)
     |> Enum.each(fn filename ->
@@ -175,7 +189,7 @@ defmodule Isuumo.Router do
   end
 
   get "/api/estate/low_priced" do
-    estates = Isuumo.Repo.estate_low_priced(@limit)
+    estates = Isuumo.Repo.estate_low_priced(@limit) |> camelize_keys_for_estate()
     success(conn, %{estates: estates})
   end
 
@@ -199,6 +213,7 @@ defmodule Isuumo.Router do
         page,
         per_page
       )
+      |> camelize_keys_for_estate()
 
     success(conn, res)
   end
@@ -258,7 +273,7 @@ defmodule Isuumo.Router do
       |> Enum.take(@nazotte_limit)
 
     success(conn, %{
-      estates: nazotte_estates,
+      estates: nazotte_estates |> camelize_keys_for_estate(),
       count: length(nazotte_estates)
     })
   end
@@ -266,8 +281,7 @@ defmodule Isuumo.Router do
   get "/api/estate/:id" do
     case Isuumo.Repo.get(Isuumo.Estate, id) do
       %Isuumo.Estate{} = estate ->
-        # TODO: DELETE doorHeight, doorWidth
-        success(conn, estate)
+        success(conn, camelize_keys_for_estate(estate))
 
       _ ->
         not_found(conn)
@@ -322,7 +336,7 @@ defmodule Isuumo.Router do
         """
 
         estates = Isuumo.Repo.query!(sql, [w, h, w, d, h, w, h, d, d, w, d, h])
-        success(conn, estates)
+        success(conn, camelize_keys_for_estate(estates))
       else
         _ -> not_found(conn)
       end
