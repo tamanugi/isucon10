@@ -1,6 +1,8 @@
 defmodule Isuumo.Router do
   use Plug.Router
 
+  plug(Plug.Logger, log: :debug)
+
   plug(Plug.Parsers,
     parsers: [:json],
     pass: ["text/*"],
@@ -29,10 +31,6 @@ defmodule Isuumo.Router do
   end
 
   def not_found(conn), do: send_resp(conn, 404, "")
-
-  def query(sql) do
-    SQL.query!(Isuumo.Repo, sql, [])
-  end
 
   def range_by_id("", _), do: {}
 
@@ -324,18 +322,7 @@ defmodule Isuumo.Router do
   get "/api/recommended_estate/:id" do
     with iid <- String.to_integer(id) do
       with %Isuumo.Chair{width: w, height: h, depth: d} <- Isuumo.Repo.get(Isuumo.Chair, iid) do
-        # XXX:
-        sql = """
-        SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?)
-        OR (door_width >= ? AND door_height >= ?)
-        OR (door_width >= ? AND door_height >= ?)
-        OR (door_width >= ? AND door_height >= ?)
-        OR (door_width >= ? AND door_height >= ?)
-        OR (door_width >= ? AND door_height >= ?)
-        ORDER BY popularity DESC, id ASC LIMIT #{@limit}
-        """
-
-        estates = Isuumo.Repo.query!(sql, [w, h, w, d, h, w, h, d, d, w, d, h])
+        estates = Isuumo.Repo.estate_by_door_size(w, h, d)
         success(conn, camelize_keys_for_estate(estates))
       else
         _ -> not_found(conn)

@@ -290,4 +290,17 @@ defmodule Isuumo.Repo do
     )
     |> all()
   end
+
+  def estate_by_door_size(w, h, d) do
+    from(c in Estate,
+      where:
+        (c.door_width >= ^w and c.door_height >= ^h) or
+          (c.door_width >= ^w and c.door_height >= ^d) or
+          (c.door_width >= ^h and c.door_height >= ^w) or
+          (c.door_width >= ^h and c.door_height >= ^d) or
+          (c.door_width >= ^d and c.door_height >= ^w) or
+          (c.door_width >= ^d and c.door_height >= ^h)
+    )
+    |> all()
+  end
 end
