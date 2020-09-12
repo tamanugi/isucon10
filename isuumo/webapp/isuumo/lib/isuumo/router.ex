@@ -24,6 +24,8 @@ defmodule Isuumo.Router do
     send_resp(conn, 400, "")
   end
 
+  def not_found(conn), do: send_resp(conn, 404, "")
+
   def query(sql) do
     SQL.query!(Isuumo.Repo, sql, [])
   end
@@ -94,28 +96,15 @@ defmodule Isuumo.Router do
     success(conn, res)
   end
 
-  # get '/api/chair/:id' do
-  #   id =
-  #     begin
-  #       Integer(params[:id], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Request parameter \"id\" parse error: #{e.inspect}"
-  #       halt 400
-  #     end
+  get "/api/chair/:id" do
+    case Isuumo.Repo.get(Isuumo.Chair, id) do
+      %Isuumo.Chair{stock: stock} = chair when stock > 0 ->
+        success(conn, chair)
 
-  #   chair = db.xquery('SELECT * FROM chair WHERE id = ?', id).first
-  #   unless chair
-  #     logger.info "Requested id's chair not found: #{id}"
-  #     halt 404
-  #   end
-
-  #   if chair[:stock] <= 0
-  #     logger.info "Requested id's chair is sold out: #{id}"
-  #     halt 404
-  #   end
-
-  #   chair.to_json
-  # end
+      _ ->
+        not_found(conn)
+    end
+  end
 
   # post '/api/chair' do
   #   if !params[:chairs] || !params[:chairs].respond_to?(:key) || !params[:chairs].key?(:tempfile)
