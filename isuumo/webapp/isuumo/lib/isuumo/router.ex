@@ -146,9 +146,9 @@ defmodule Isuumo.Router do
     end
   end
 
-  # get '/api/chair/search/condition' do
-  #   CHAIR_SEARCH_CONDITION.to_json
-  # end
+  get "/api/chair/search/condition" do
+    success(conn, @chair_search_condition)
+  end
 
   # get '/api/estate/low_priced' do
   #   sql = "SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT #{LIMIT}" # XXX:
