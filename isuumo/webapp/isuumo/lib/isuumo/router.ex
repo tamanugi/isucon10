@@ -32,6 +32,7 @@ defmodule Isuumo.Router do
 
   def not_found(conn), do: send_resp(conn, 404, "")
 
+  def range_by_id(nil_value, _) when is_nil(nil_value), do: {}
   def range_by_id("", _), do: {}
 
   def range_by_id(key, type) do

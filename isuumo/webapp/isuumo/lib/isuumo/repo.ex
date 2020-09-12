@@ -121,6 +121,9 @@ defmodule Isuumo.Repo do
 
     query =
       case(kind) do
+        nil ->
+          query
+
         "" ->
           query
 
@@ -132,6 +135,9 @@ defmodule Isuumo.Repo do
 
     query =
       case(color) do
+        nil ->
+          query
+
         "" ->
           query
 
