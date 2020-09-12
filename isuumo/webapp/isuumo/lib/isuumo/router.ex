@@ -18,8 +18,6 @@ defmodule Isuumo.Router do
   @estate_search_condition Poison.decode!(File.read!('fixture/estate_condition.json'))
   @nazotte_limit 50
 
-  # ESTATE_SEARCH_CONDITION = JSON.parse(File.read('../fixture/estate_condition.json'), symbolize_names: true)
-
   defp success(conn, resp) do
     conn
     |> put_resp_content_type("application/json")
@@ -295,28 +293,27 @@ defmodule Isuumo.Router do
     success(conn, @estate_search_condition)
   end
 
-  # get '/api/recommended_estate/:id' do
-  #   id =
-  #     begin
-  #       Integer(params[:id], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Request parameter \"id\" parse error: #{e.inspect}"
-  #       halt 400
-  #     end
+  get "/api/recommended_estate/:id" do
+    with iid <- String.to_integer(id) do
+      with %Isuumo.Chair{width: w, height: h, depth: d} <- Isuumo.Repo.get(Isuumo.Chair, iid) do
+        # XXX:
+        sql = """
+        SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?)
+        OR (door_width >= ? AND door_height >= ?)
+        OR (door_width >= ? AND door_height >= ?)
+        OR (door_width >= ? AND door_height >= ?)
+        OR (door_width >= ? AND door_height >= ?)
+        OR (door_width >= ? AND door_height >= ?)
+        ORDER BY popularity DESC, id ASC LIMIT #{@limit}
+        """
 
-  #   chair = db.xquery('SELECT * FROM chair WHERE id = ?', id).first
-  #   unless chair
-  #     logger.error "Requested id's chair not found: #{id}"
-  #     halt 404
-  #   end
-
-  #   w = chair[:width]
-  #   h = chair[:height]
-  #   d = chair[:depth]
-
-  #   sql = "SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT #{LIMIT}" # XXX:
-  #   estates = db.xquery(sql, w, h, w, d, h, w, h, d, d, w, d, h).to_a
-
-  #   { estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
-  # end
+        estates = Isuumo.Repo.query!(sql, [w, h, w, d, h, w, h, d, d, w, d, h])
+        success(conn, estates)
+      else
+        _ -> not_found(conn)
+      end
+    else
+      _ -> error(conn)
+    end
+  end
 end
