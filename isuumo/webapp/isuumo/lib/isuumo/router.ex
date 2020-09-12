@@ -49,6 +49,19 @@ defmodule Isuumo.Router do
     |> List.first()
   end
 
+  def estate_range_by_id("", _), do: nil
+
+  def estate_range_by_id(key, type) do
+    @estate_search_condition
+    |> Map.get(type)
+    |> Map.get("ranges")
+    |> Enum.filter(fn %{"id" => id, "min" => _, "max" => _} ->
+      id == String.to_integer(key)
+    end)
+    |> Enum.map(fn %{"id" => _, "min" => min, "max" => max} -> {min, max} end)
+    |> List.first()
+  end
+
   post "/initialize" do
     ~w(0_Schema.sql 1_DummyEstateData.sql 2_DummyChairData.sql)
     |> Enum.each(fn filename ->
@@ -73,8 +86,6 @@ defmodule Isuumo.Router do
   get "/api/chair/search" do
     conn = Conn.fetch_query_params(conn)
     params = conn.query_params
-
-    IO.inspect(params)
 
     price_range = range_by_id(Map.get(params, "priceRangeId"), "price")
     height_range = range_by_id(Map.get(params, "heightRangeId"), "height")
@@ -156,102 +167,29 @@ defmodule Isuumo.Router do
     success(conn, %{estates: estates})
   end
 
-  # get '/api/estate/search' do
-  #   search_queries = []
-  #   query_params = []
+  get "/api/estate/search" do
+    conn = Conn.fetch_query_params(conn)
+    params = conn.query_params
 
-  #   if params[:doorHeightRangeId] && params[:doorHeightRangeId].size > 0
-  #     door_height = ESTATE_SEARCH_CONDITION[:doorHeight][:ranges][params[:doorHeightRangeId].to_i]
-  #     unless door_height
-  #       logger.error "doorHeightRangeId invalid: #{params[:doorHeightRangeId]}"
-  #       halt 400
-  #     end
+    door_height_range = estate_range_by_id(Map.get(params, "doorHeightRangeId"), "doorHeight")
+    door_width_range = estate_range_by_id(Map.get(params, "doorWidthRangeId"), "doorWidth")
+    rent_range = estate_range_by_id(Map.get(params, "rentRangeId"), "rent")
+    features = Map.get(params, "features") |> String.split(",")
+    page = Map.get(params, "page") |> String.to_integer()
+    per_page = Map.get(params, "perPage") |> String.to_integer()
 
-  #     if door_height[:min] != -1
-  #       search_queries << 'door_height >= ?'
-  #       query_params << door_height[:min]
-  #     end
+    res =
+      Isuumo.Repo.search_estate(
+        door_height_range,
+        door_width_range,
+        rent_range,
+        features,
+        page,
+        per_page
+      )
 
-  #     if door_height[:max] != -1
-  #       search_queries << 'door_height < ?'
-  #       query_params << door_height[:max]
-  #     end
-  #   end
-
-  #   if params[:doorWidthRangeId] && params[:doorWidthRangeId].size > 0
-  #     door_width = ESTATE_SEARCH_CONDITION[:doorWidth][:ranges][params[:doorWidthRangeId].to_i]
-  #     unless door_width
-  #       logger.error "doorWidthRangeId invalid: #{params[:doorWidthRangeId]}"
-  #       halt 400
-  #     end
-
-  #     if door_width[:min] != -1
-  #       search_queries << 'door_width >= ?'
-  #       query_params << door_width[:min]
-  #     end
-
-  #     if door_width[:max] != -1
-  #       search_queries << 'door_width < ?'
-  #       query_params << door_width[:max]
-  #     end
-  #   end
-
-  #   if params[:rentRangeId] && params[:rentRangeId].size > 0
-  #     rent = ESTATE_SEARCH_CONDITION[:rent][:ranges][params[:rentRangeId].to_i]
-  #     unless rent
-  #       logger.error "rentRangeId invalid: #{params[:rentRangeId]}"
-  #       halt 400
-  #     end
-
-  #     if rent[:min] != -1
-  #       search_queries << 'rent >= ?'
-  #       query_params << rent[:min]
-  #     end
-
-  #     if rent[:max] != -1
-  #       search_queries << 'rent < ?'
-  #       query_params << rent[:max]
-  #     end
-  #   end
-
-  #   if params[:features] && params[:features].size > 0
-  #     params[:features].split(',').each do |feature_condition|
-  #       search_queries << "features LIKE CONCAT('%', ?, '%')"
-  #       query_params.push(feature_condition)
-  #     end
-  #   end
-
-  #   if search_queries.size == 0
-  #     logger.error "Search condition not found"
-  #     halt 400
-  #   end
-
-  #   page =
-  #     begin
-  #       Integer(params[:page], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Invalid format page parameter: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   per_page =
-  #     begin
-  #       Integer(params[:perPage], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Invalid format perPage parameter: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   sqlprefix = 'SELECT * FROM estate WHERE '
-  #   search_condition = search_queries.join(' AND ')
-  #   limit_offset = " ORDER BY popularity DESC, id ASC LIMIT #{per_page} OFFSET #{per_page * page}" # XXX:
-  #   count_prefix = 'SELECT COUNT(*) as count FROM estate WHERE '
-
-  #   count = db.xquery("#{count_prefix}#{search_condition}", query_params).first[:count]
-  #   estates = db.xquery("#{sqlprefix}#{search_condition}#{limit_offset}", query_params).to_a
-
-  #   { count: count, estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
-  # end
+    success(conn, res)
+  end
 
   # post '/api/estate/nazotte' do
   #   coordinates = body_json_params[:coordinates]
