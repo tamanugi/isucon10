@@ -46,6 +46,7 @@ defmodule Isuumo.Router do
     |> List.first()
   end
 
+  def estate_range_by_id(nil_value, _) when is_nil(nil_value), do: nil
   def estate_range_by_id("", _), do: nil
 
   def estate_range_by_id(key, type) do
@@ -203,7 +204,7 @@ defmodule Isuumo.Router do
     page = Map.get(params, "page") |> String.to_integer()
     per_page = Map.get(params, "perPage") |> String.to_integer()
 
-    res =
+    %{count: count, chairs: chairs} =
       Isuumo.Repo.search_estate(
         door_height_range,
         door_width_range,
@@ -212,9 +213,8 @@ defmodule Isuumo.Router do
         page,
         per_page
       )
-      |> camelize_keys_for_estate()
 
-    success(conn, res)
+    success(conn, %{count: count, chairs: chairs |> camelize_keys_for_estate()})
   end
 
   post "/api/estate/nazotte" do
