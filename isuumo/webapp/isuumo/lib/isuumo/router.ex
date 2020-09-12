@@ -238,23 +238,16 @@ defmodule Isuumo.Router do
   #   }.to_json
   # end
 
-  # get '/api/estate/:id' do
-  #   id =
-  #     begin
-  #       Integer(params[:id], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "Request parameter \"id\" parse error: #{e.inspect}"
-  #       halt 400
-  #     end
+  get "/api/estate/:id" do
+    case Isuumo.Repo.get(Isuumo.Estate, id) do
+      %Isuumo.Estate{} = estate ->
+        # TODO: DELETE doorHeight, doorWidth
+        success(conn, estate)
 
-  #   estate = db.xquery('SELECT * FROM estate WHERE id = ?', id).first
-  #   unless estate
-  #     logger.info "Requested id's estate not found: #{id}"
-  #     halt 404
-  #   end
-
-  #   camelize_keys_for_estate(estate).to_json
-  # end
+      _ ->
+        not_found(conn)
+    end
+  end
 
   # post '/api/estate' do
   #   unless params[:estates]
