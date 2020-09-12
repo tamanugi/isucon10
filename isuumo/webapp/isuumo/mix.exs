@@ -27,7 +27,10 @@ defmodule Isuumo.MixProject do
       {:plug, "~> 1.10"},
       {:cowboy, "~> 2.8"},
       {:plug_cowboy, "~> 2.3"},
-      {:ecto, "~> 3.4"}
+      {:ecto, "~> 3.4"},
+      {:ecto_sql, "~> 3.0"},
+      {:myxql, "~> 0.4.0"},
+      {:poison, "~> 4.0"}
     ]
   end
 end

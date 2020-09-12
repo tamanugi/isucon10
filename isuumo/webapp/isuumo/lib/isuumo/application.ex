@@ -9,7 +9,8 @@ defmodule Isuumo.Application do
     children = [
       # Starts a worker by calling: Isuumo.Worker.start_link(arg)
       # {Isuumo.Worker, arg}
-      {Plug.Cowboy, scheme: :http, plug: Isuumo.Router, port: 4000}
+      {Plug.Cowboy, scheme: :http, plug: Isuumo.Router, port: 4000},
+      {Isuumo.Repo, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
