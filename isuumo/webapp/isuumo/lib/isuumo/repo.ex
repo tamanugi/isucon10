@@ -283,7 +283,7 @@ defmodule Isuumo.Repo do
 
     %{
       count: count_query |> first() |> one(),
-      chairs: query |> all()
+      estates: query |> all()
     }
   end
 
