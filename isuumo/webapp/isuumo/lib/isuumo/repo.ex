@@ -297,7 +297,8 @@ defmodule Isuumo.Repo do
     |> all()
   end
 
-  def estate_by_door_size(w, h, d) do
+  def estate_by_door_size(w, h, d, limit) do
+    # ORDER BY popularity DESC, id ASC LIMIT #{LIMIT}"
     from(c in Estate,
       where:
         (c.door_width >= ^w and c.door_height >= ^h) or
@@ -305,7 +306,9 @@ defmodule Isuumo.Repo do
           (c.door_width >= ^h and c.door_height >= ^w) or
           (c.door_width >= ^h and c.door_height >= ^d) or
           (c.door_width >= ^d and c.door_height >= ^w) or
-          (c.door_width >= ^d and c.door_height >= ^h)
+          (c.door_width >= ^d and c.door_height >= ^h),
+      order_by: [desc: c.popularity, asc: c.id],
+      limit: ^limit
     )
     |> all()
   end

@@ -323,7 +323,7 @@ defmodule Isuumo.Router do
   get "/api/recommended_estate/:id" do
     with iid <- String.to_integer(id) do
       with %Isuumo.Chair{width: w, height: h, depth: d} <- Isuumo.Repo.get(Isuumo.Chair, iid) do
-        estates = Isuumo.Repo.estate_by_door_size(w, h, d)
+        estates = Isuumo.Repo.estate_by_door_size(w, h, d, @limit)
         success(conn, camelize_keys_for_estate(estates))
       else
         _ -> not_found(conn)
