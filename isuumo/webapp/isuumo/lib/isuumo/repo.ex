@@ -8,6 +8,16 @@ defmodule Isuumo.Repo do
   alias Isuumo.Chair
   alias Isuumo.Estate
 
+  def chair_low_priced(limit) do
+    from(c in Chair, where: c.stock > 0, order_by: [asc: c.price, asc: c.id], limit: ^limit)
+    |> all()
+  end
+
+  def estate_low_priced(limit) do
+    from(c in Estate, order_by: [asc: c.rent, asc: c.id], limit: ^limit)
+    |> all()
+  end
+
   def search_chair(
         price_range,
         height_range,

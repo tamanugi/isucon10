@@ -75,9 +75,7 @@ defmodule Isuumo.Router do
   end
 
   get "/api/chair/low_priced" do
-    # XXX:
-    sql = "SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT #{@limit}"
-    chairs = query(sql)
+    chairs = Isuumo.Repo.chair_low_priced(@limit)
     success(conn, %{chairs: chairs})
   end
 
@@ -160,8 +158,7 @@ defmodule Isuumo.Router do
   end
 
   get "/api/estate/low_priced" do
-    sql = "SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT #{@limit}"
-    estates = query(sql)
+    estates = Isuumo.Repo.estate_low_priced(@limit)
     success(conn, %{estates: estates})
   end
 
