@@ -16,8 +16,8 @@ defmodule Isuumo.Router do
   @limit 20
   @chair_search_condition Poison.decode!(File.read!('fixture/chair_condition.json'))
   @estate_search_condition Poison.decode!(File.read!('fixture/estate_condition.json'))
+  @nazotte_limit 50
 
-  # NAZOTTE_LIMIT = 50
   # ESTATE_SEARCH_CONDITION = JSON.parse(File.read('../fixture/estate_condition.json'), symbolize_names: true)
 
   defp success(conn, resp) do
@@ -191,52 +191,65 @@ defmodule Isuumo.Router do
     success(conn, res)
   end
 
-  # post '/api/estate/nazotte' do
-  #   coordinates = body_json_params[:coordinates]
+  post "/api/estate/nazotte" do
+    %{"coordinates" => coordinates} = conn.body_params
+    # TODO: error handling
 
-  #   unless coordinates
-  #     logger.error "post search estate nazotte failed: coordinates not found"
-  #     halt 400
-  #   end
+    [longitude_min, latitude_min, longitude_max, latitude_max] =
+      coordinates
+      |> Enum.reduce(nil, fn %{"latitude" => latitude, "longitude" => longitude}, acc ->
+        case acc do
+          [long_min, lat_min, long_max, lat_max] ->
+            [
+              Enum.min([long_min, longitude]),
+              Enum.min([lat_min, latitude]),
+              Enum.max([long_max, longitude]),
+              Enum.max([lat_max, latitude])
+            ]
 
-  #   if !coordinates.is_a?(Array) || coordinates.empty?
-  #     logger.error "post search estate nazotte failed: coordinates are empty"
-  #     halt 400
-  #   end
+          nil ->
+            [longitude, latitude, longitude, latitude]
+        end
+      end)
 
-  #   longitudes = coordinates.map { |c| c[:longitude] }
-  #   latitudes = coordinates.map { |c| c[:latitude] }
-  #   bounding_box = {
-  #     top_left: {
-  #       longitude: longitudes.min,
-  #       latitude: latitudes.min,
-  #     },
-  #     bottom_right: {
-  #       longitude: longitudes.max,
-  #       latitude: latitudes.max,
-  #     },
-  #   }
+    estates =
+      Isuumo.Repo.search_estitate_form_bounding_box(
+        longitude_min,
+        latitude_min,
+        longitude_max,
+        latitude_max
+      )
 
-  #   sql = 'SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC'
-  #   estates = db.xquery(sql, bounding_box[:bottom_right][:latitude], bounding_box[:top_left][:latitude], bounding_box[:bottom_right][:longitude], bounding_box[:top_left][:longitude])
+    coordinates_text =
+      coordinates
+      |> Enum.map(fn %{"latitude" => latitude, "longitude" => longitude} ->
+        "#{latitude} #{longitude}"
+      end)
+      |> Enum.join(",")
 
-  #   estates_in_polygon = []
-  #   estates.each do |estate|
-  #     point = "'POINT(%f %f)'" % estate.values_at(:latitude, :longitude)
-  #     coordinates_to_text = "'POLYGON((%s))'" % coordinates.map { |c| '%f %f' % c.values_at(:latitude, :longitude) }.join(',')
-  #     sql = 'SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))' % [coordinates_to_text, point]
-  #     e = db.xquery(sql, estate[:id]).first
-  #     if e
-  #       estates_in_polygon << e
-  #     end
-  #   end
+    coordinates_to_text = "'POLYGON((#{coordinates_text}))'"
 
-  #   nazotte_estates = estates_in_polygon.take(NAZOTTE_LIMIT)
-  #   {
-  #     estates: nazotte_estates.map { |e| camelize_keys_for_estate(e) },
-  #     count: nazotte_estates.size,
-  #   }.to_json
-  # end
+    nazotte_estates =
+      estates
+      |> Enum.map(fn e ->
+        point = "'POINT(#{e.latitude} #{e.longitude})'"
+
+        sql = """
+        SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(#{
+          coordinates_to_text
+        }), ST_GeomFromText(#{point}))
+        """
+
+        Isuumo.Repo.query!(sql, [e.id])
+      end)
+      |> Enum.filter(fn e -> e != nil end)
+      |> Enum.take(@nazotte_limit)
+
+    success(conn, %{
+      estates: nazotte_estates,
+      count: length(nazotte_estates)
+    })
+  end
 
   get "/api/estate/:id" do
     case Isuumo.Repo.get(Isuumo.Estate, id) do

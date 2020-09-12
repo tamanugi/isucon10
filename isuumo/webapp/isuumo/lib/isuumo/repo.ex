@@ -270,4 +270,14 @@ defmodule Isuumo.Repo do
       chairs: query |> all()
     }
   end
+
+  def search_estitate_form_bounding_box(longitude_min, latitude_min, longitude_max, latitude_max) do
+    from(c in Isuumo.Estate,
+      where: c.longitude >= ^longitude_min,
+      where: c.longitude <= ^longitude_max,
+      where: c.latitude >= ^latitude_min,
+      where: c.latitude <= ^latitude_max
+    )
+    |> all()
+  end
 end
