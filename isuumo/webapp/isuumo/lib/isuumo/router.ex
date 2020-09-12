@@ -278,28 +278,18 @@ defmodule Isuumo.Router do
   #   status 201
   # end
 
-  # post '/api/estate/req_doc/:id' do
-  #   unless body_json_params[:email]
-  #     logger.error 'post request document failed: email not found in request body'
-  #     halt 400
-  #   end
-
-  #   id =
-  #     begin
-  #       Integer(params[:id], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "post request document failed: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   estate = db.xquery('SELECT * FROM estate WHERE id = ?', id).first
-  #   unless estate
-  #     logger.error "Requested id's estate not found: #{id}"
-  #     halt 404
-  #   end
-
-  #   status 200
-  # end
+  post "/api/estate/req_doc/:id" do
+    with %{"email" => _email} <- conn.body_params,
+         iid when is_integer(iid) <- String.to_integer(id) do
+      with %Isuumo.Estate{} <- Isuumo.Repo.get(Isuumo.Estate, iid) do
+        success(conn, "")
+      else
+        _ -> not_found(conn)
+      end
+    else
+      _ -> error(conn)
+    end
+  end
 
   get "/api/estate/search/condition" do
     success(conn, @estate_search_condition)
