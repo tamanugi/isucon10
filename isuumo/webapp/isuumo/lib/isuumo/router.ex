@@ -1,6 +1,12 @@
 defmodule Isuumo.Router do
   use Plug.Router
 
+  plug(Plug.Parsers,
+    parsers: [:json],
+    pass: ["text/*"],
+    json_decoder: Poison
+  )
+
   plug(:match)
   plug(:dispatch)
 
@@ -122,31 +128,23 @@ defmodule Isuumo.Router do
   #   status 201
   # end
 
-  # post '/api/chair/buy/:id' do
-  #   unless body_json_params[:email]
-  #     logger.error 'post buy chair failed: email not found in request body'
-  #     halt 400
-  #   end
-
-  #   id =
-  #     begin
-  #       Integer(params[:id], 10)
-  #     rescue ArgumentError => e
-  #       logger.error "post buy chair failed: #{e.inspect}"
-  #       halt 400
-  #     end
-
-  #   transaction('post_api_chair_buy') do |tx_name|
-  #     chair = db.xquery('SELECT * FROM chair WHERE id = ? AND stock > 0 FOR UPDATE', id).first
-  #     unless chair
-  #       rollback_transaction(tx_name) if in_transaction?(tx_name)
-  #       halt 404
-  #     end
-  #     db.xquery('UPDATE chair SET stock = stock - 1 WHERE id = ?', id)
-  #   end
-
-  #   status 200
-  # end
+  post "/api/chair/buy/:id" do
+    with %{"email" => _email} <- conn.body_params,
+         iid when is_integer(iid) <- String.to_integer(id) do
+      Isuumo.Repo.transaction(fn ->
+        with %Isuumo.Chair{stock: s} when s > 0 <- Isuumo.Repo.get_chair_for_updte(iid) do
+          Isuumo.Repo.query!("UPDATE chair SET stock = stock - 1 WHERE id = ?", [iid])
+          success(conn, "")
+        else
+          _ ->
+            IO.puts("not stock")
+            raise "error"
+        end
+      end)
+    else
+      _ -> error(conn)
+    end
+  end
 
   # get '/api/chair/search/condition' do
   #   CHAIR_SEARCH_CONDITION.to_json

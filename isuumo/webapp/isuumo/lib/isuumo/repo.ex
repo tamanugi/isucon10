@@ -158,4 +158,10 @@ defmodule Isuumo.Repo do
       chairs: query |> all()
     }
   end
+
+  def get_chair_for_updte(id) do
+    from(c in Isuumo.Chair, where: c.id == ^id)
+    |> lock("FOR UPDATE")
+    |> one()
+  end
 end
