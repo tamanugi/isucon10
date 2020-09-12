@@ -1,6 +1,7 @@
 defmodule Isuumo.Estate do
   use Ecto.Schema
 
+  @derive {Poison.Encoder, except: [:__meta__]}
   schema "estate" do
     field(:name, :string)
     field(:description, :string)

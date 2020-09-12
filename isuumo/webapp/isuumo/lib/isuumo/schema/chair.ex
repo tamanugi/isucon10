@@ -1,6 +1,7 @@
 defmodule Isuumo.Chair do
   use Ecto.Schema
 
+  @derive {Poison.Encoder, except: [:__meta__]}
   schema "chair" do
     field(:name, :string)
     field(:description, :string)
